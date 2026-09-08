@@ -1,0 +1,191 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user account with role-based permissions and MFA status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "fullName": { "type": "string" },
+        "role": { "type": "string", "enum": ["ENP", "LAWYER", "CLIENT", "ADMIN", "COMPLIANCE_OFFICER", "AUDITOR"] },
+        "mfaEnabled": { "type": "boolean" },
+        "commissionNumber": { "type": "string" },
+        "ibpRollNumber": { "type": "string" },
+        "region": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "email", "fullName", "role"]
+    },
+    "LegalCase": {
+      "title": "LegalCase",
+      "description": "Supreme court legal case filing tracked with G.R. Number",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "grNumber": { "type": "string" },
+        "title": { "type": "string" },
+        "courtDivision": { "type": "string" },
+        "ponente": { "type": "string" },
+        "status": { "type": "string" },
+        "region": { "type": "string" },
+        "priority": { "type": "string" },
+        "clientName": { "type": "string" },
+        "attorneyName": { "type": "string" },
+        "nextHearingDate": { "type": "string" },
+        "documentCount": { "type": "number" },
+        "blockchainTxHash": { "type": "string" },
+        "isSealed": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "grNumber", "title", "status", "region"]
+    },
+    "NotarialTransaction": {
+      "title": "NotarialTransaction",
+      "description": "Regulated ENF electronic notarial act transaction complying with A.M. No. 24-10-14-SC",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "grNumber": { "type": "string" },
+        "actType": { "type": "string", "enum": ["ACKNOWLEDGMENT", "JURAT", "OATH_OR_AFFIRMATION", "SIGNATURE_WITNESSING"] },
+        "serviceMode": { "type": "string", "enum": ["IEN", "REN"] },
+        "state": { "type": "string" },
+        "principalName": { "type": "string" },
+        "enpId": { "type": "string" },
+        "enpName": { "type": "string" },
+        "documentTitle": { "type": "string" },
+        "documentHash": { "type": "string" },
+        "certificateNumber": { "type": "string" },
+        "jurisdictionStatus": { "type": "string" },
+        "identityTrustScore": { "type": "string" },
+        "isEncryptedAes256": { "type": "boolean" },
+        "courtKeyApprovalId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "actType", "serviceMode", "state", "principalName"]
+    },
+    "NotarialBookEntry": {
+      "title": "NotarialBookEntry",
+      "description": "Statutory chronological Rule VIII electronic notarial book entry with cryptographic hash chaining",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sequenceNumber": { "type": "number" },
+        "enpId": { "type": "string" },
+        "transactionId": { "type": "string" },
+        "grNumber": { "type": "string" },
+        "documentTitle": { "type": "string" },
+        "principalName": { "type": "string" },
+        "competentEvidenceId": { "type": "string" },
+        "feeCharged": { "type": "number" },
+        "serviceMode": { "type": "string" },
+        "entryHash": { "type": "string" },
+        "previousEntryHash": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "sequenceNumber", "enpId", "entryHash", "previousEntryHash"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable security and compliance audit log for HIPAA and GDPR compliance",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "actor": { "type": "string" },
+        "actorRole": { "type": "string" },
+        "action": { "type": "string" },
+        "resource": { "type": "string" },
+        "grNumber": { "type": "string" },
+        "severity": { "type": "string", "enum": ["INFO", "WARNING", "CRITICAL", "SUSPICIOUS"] },
+        "ipAddress": { "type": "string" },
+        "status": { "type": "string" },
+        "logHash": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "actor", "action", "severity"]
+    },
+    "CourtKeyDecision": {
+      "title": "CourtKeyDecision",
+      "description": "Court en banc / division decision granting decryption private keys for sealed records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "grNumber": { "type": "string" },
+        "resolutionNumber": { "type": "string" },
+        "approvingBody": { "type": "string" },
+        "ponenteJustice": { "type": "string" },
+        "decisionDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"] },
+        "privateKeyFingerprint": { "type": "string" },
+        "accessGrantedTo": { "type": "string" }
+      },
+      "required": ["id", "grNumber", "approvingBody", "status"]
+    },
+    "SecureMessage": {
+      "title": "SecureMessage",
+      "description": "Encrypted message thread between legal team and client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "grNumber": { "type": "string" },
+        "sender": { "type": "string" },
+        "senderRole": { "type": "string" },
+        "recipient": { "type": "string" },
+        "encryptedContent": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "grNumber", "sender", "encryptedContent"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Priority email and SMS alerts for court date reminders and status updates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "recipientEmail": { "type": "string" },
+        "recipientPhone": { "type": "string" },
+        "type": { "type": "string", "enum": ["COURT_REMINDER", "STATUS_UPDATE", "SECURITY_ALERT", "KEY_ISSUANCE"] },
+        "channel": { "type": "string", "enum": ["EMAIL", "SMS", "DUAL"] },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string" },
+        "sentAt": { "type": "string" }
+      },
+      "required": ["id", "type", "channel", "message"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and credentials"
+    },
+    "/legal_cases/{caseId}": {
+      "schema": "LegalCase",
+      "description": "Supreme Court legal cases"
+    },
+    "/notarial_transactions/{transactionId}": {
+      "schema": "NotarialTransaction",
+      "description": "Electronic notarial transactions"
+    },
+    "/notarial_book/{entryId}": {
+      "schema": "NotarialBookEntry",
+      "description": "Immutable Rule VIII Electronic Notarial Book entries"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Immutable HIPAA & GDPR compliance audit logs"
+    },
+    "/court_key_decisions/{decisionId}": {
+      "schema": "CourtKeyDecision",
+      "description": "Court decisions granting private keys to unlock sealed records"
+    },
+    "/secure_messages/{messageId}": {
+      "schema": "SecureMessage",
+      "description": "Encrypted communication between legal counsel and clients"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Email and SMS automated priority notification logs"
+    }
+  }
+}

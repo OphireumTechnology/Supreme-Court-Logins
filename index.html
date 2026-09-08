@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supreme Court E-Notary &amp; Legal Services Platform</title>
+    <meta name="description" content="Enterprise Electronic Notarization Facility (ENF) and Legal Case Management System compliant with A.M. No. 24-10-14-SC, HIPAA, and GDPR protocols, featuring blockchain-like immutable ledger, AES-256 encrypted storage, real-time analytics, and role-based access control." />
+    <meta property="og:title" content="Supreme Court E-Notary &amp; Legal Services Platform" />
+    <meta property="og:description" content="Enterprise Electronic Notarization Facility (ENF) and Legal Case Management System compliant with A.M. No. 24-10-14-SC, HIPAA, and GDPR protocols, featuring blockchain-like immutable ledger, AES-256 encrypted storage, real-time analytics, and role-based access control." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Suppress unhandled errors from third-party browser extensions (e.g. MetaMask, web3 injectors)
+      (function() {
+        function shouldSuppress(msg) {
+          if (!msg) return false;
+          var str = String(msg).toLowerCase();
+          return (
+            str.indexOf('metamask') !== -1 ||
+            str.indexOf('ethereum') !== -1 ||
+            str.indexOf('web3') !== -1 ||
+            str.indexOf('inpage') !== -1 ||
+            str.indexOf('wallet') !== -1
+          );
+        }
+
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event.reason;
+          var msg = (reason && (reason.message || reason.stack || String(reason))) || '';
+          if (shouldSuppress(msg)) {
+            event.preventDefault();
+            if (typeof event.stopImmediatePropagation === 'function') {
+              event.stopImmediatePropagation();
+            }
+            return false;
+          }
+        }, true);
+
+        window.addEventListener('error', function(event) {
+          var msg = event.message || (event.error && (event.error.message || event.error.stack)) || '';
+          if (shouldSuppress(msg) || (event.filename && event.filename.indexOf('extension') !== -1)) {
+            event.preventDefault();
+            if (typeof event.stopImmediatePropagation === 'function') {
+              event.stopImmediatePropagation();
+            }
+            return false;
+          }
+        }, true);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

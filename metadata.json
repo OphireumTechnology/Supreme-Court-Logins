@@ -1,0 +1,12 @@
+{
+  "name": "Supreme Court E-Notary & Legal Services Platform",
+  "description": "Enterprise Electronic Notarization Facility (ENF) and Legal Case Management System compliant with A.M. No. 24-10-14-SC, HIPAA, and GDPR protocols, featuring blockchain-like immutable ledger, AES-256 encrypted storage, real-time analytics, and role-based access control.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,200 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isTenantMember(tenantId) {
+      return isSignedIn() && (
+        request.auth.token.tenantId == tenantId ||
+        getUserData().tenantId == tenantId
+      );
+    }
+
+    function isActiveENP() {
+      let userData = getUserData();
+      return isSignedIn() &&
+        userData.role == 'ENP' &&
+        userData.enpStatus == 'ACTIVE' &&
+        request.time < timestamp.date(2027, 1, 1);
+    }
+
+    function isPrivilegedLegalStaff() {
+      let userData = getUserData();
+      return isSignedIn() && (
+        userData.role == 'ENP' ||
+        userData.role == 'LAWYER' ||
+        userData.role == 'ADMIN' ||
+        userData.role == 'COMPLIANCE_OFFICER'
+      );
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isPrivilegedLegalStaff());
+      allow create, update: if isSignedIn() && (request.auth.uid == userId || getUserData().role == 'ADMIN');
+      allow delete: if false; // User accounts are preserved for statutory audit trail
+    }
+
+    // Legal Cases & Filings (Tenant and Client Isolated)
+    match /legal_cases/{caseId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId) && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.attorneyEmail == request.auth.token.email ||
+        isPrivilegedLegalStaff()
+      );
+      allow create: if isSignedIn() && isTenantMember(request.resource.data.tenantId);
+      allow update: if isSignedIn() && isTenantMember(resource.data.tenantId) && isPrivilegedLegalStaff();
+      allow delete: if false; // Regulated judicial filings cannot be arbitrarily dropped
+    }
+
+    // Encrypted Documents (Multi-Storage)
+    match /encrypted_documents/{docId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId) && (
+        resource.data.clientId == request.auth.uid ||
+        isPrivilegedLegalStaff()
+      );
+      allow create: if isSignedIn() && isTenantMember(request.resource.data.tenantId);
+      allow update: if isSignedIn() && isTenantMember(resource.data.tenantId) && isPrivilegedLegalStaff();
+      allow delete: if false;
+    }
+
+    // Notarial Transactions (A.M. No. 24-10-14-SC)
+    match /notarial_transactions/{transactionId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId) && (
+        resource.data.clientId == request.auth.uid ||
+        isPrivilegedLegalStaff()
+      );
+      // Enterprise Admin, Platform Admin, and Law Firm Admin CANNOT notarize or create notarial acts
+      allow create: if isSignedIn() && isTenantMember(request.resource.data.tenantId);
+      allow update: if isSignedIn() && isTenantMember(resource.data.tenantId) && (
+        // Only active ENP can apply signature and seal
+        (request.resource.data.state in ['ENP_SIGNATURE_APPLIED', 'ENP_SEAL_APPLIED', 'COMPLETE'] ? isActiveENP() : isPrivilegedLegalStaff())
+      );
+      allow delete: if false;
+    }
+
+    // Rule VIII Electronic Notarial Book (Statutory Append-Only Ledger)
+    match /notarial_book/{entryId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId);
+      // Only ACTIVE commissioned ENP can create an entry
+      allow create: if isActiveENP() && isTenantMember(request.resource.data.tenantId);
+      // Strictly immutable: cannot update or delete once recorded
+      allow update, delete: if false;
+    }
+
+    // Linked Amendment Entries (Rule VIII Corrections)
+    match /notarial_book_amendments/{amendmentId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId);
+      allow create: if isActiveENP() && isTenantMember(request.resource.data.tenantId);
+      allow update, delete: if false; // Amendments themselves are permanent
+    }
+
+    // Evidence Vault (Rule VII Audio-Video & e-KYC Records)
+    match /evidence_vault/{vaultId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId) && (
+        getUserData().role in ['ENP', 'ADMIN', 'COMPLIANCE_OFFICER']
+      );
+      allow create: if isSignedIn() && isTenantMember(request.resource.data.tenantId);
+      allow update, delete: if false; // 10-year statutory immutability
+    }
+
+    // Immutable Audit Logs (HIPAA, GDPR & Judicial Compliance)
+    match /audit_logs/{logId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId) && (
+        getUserData().role in ['ADMIN', 'COMPLIANCE_OFFICER', 'AUDITOR']
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if false; // Immutable write-once audit trail
+    }
+
+    // Court Key Decisions
+    match /court_key_decisions/{decisionId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId);
+      // Only judicial administrator can record court resolutions
+      allow write: if isSignedIn() && isTenantMember(request.resource.data.tenantId) && (
+        getUserData().role in ['ADMIN', 'COMPLIANCE_OFFICER']
+      );
+    }
+
+    // Encrypted Messages (Client & Counsel Private Communication)
+    match /secure_messages/{messageId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId) && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.recipientId == request.auth.uid ||
+        resource.data.senderName == request.auth.token.name ||
+        resource.data.recipientName == request.auth.token.name ||
+        getUserData().role in ['LAWYER', 'ENP']
+      );
+      allow create: if isSignedIn() && isTenantMember(request.resource.data.tenantId);
+      allow update: if isSignedIn() && (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // Notifications Gateway
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId);
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if false;
+    }
+
+    // Identity Verifications & Biometric Attestations (Rule VII)
+    match /identity_verifications/{verificationId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId) && (
+        resource.data.participantId == request.auth.uid || isPrivilegedLegalStaff()
+      );
+      allow create: if isSignedIn() && isTenantMember(request.resource.data.tenantId);
+      allow update: if isActiveENP() && isTenantMember(resource.data.tenantId);
+      allow delete: if false;
+    }
+
+    // Consent Records (RA 10173 & A.M. No. 24-10-14-SC)
+    match /consents/{consentId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId);
+      allow create: if isSignedIn() && isTenantMember(request.resource.data.tenantId);
+      allow update, delete: if false; // Immutable consent ledger
+    }
+
+    // ENP Commissions & Register (Rule VI & VII)
+    match /enp_commissions/{commissionId} {
+      allow read: if isSignedIn();
+      // Only Administrator or Judicial Registrar can commission an ENP
+      allow write: if isSignedIn() && getUserData().role in ['ADMIN', 'COMPLIANCE_OFFICER'];
+    }
+
+    // Official Electronic Notarial Certificates
+    match /notarial_certificates/{certId} {
+      allow read: if true; // Public verification allowed by certificate number / token
+      allow create: if isActiveENP() && isTenantMember(request.resource.data.tenantId);
+      allow update, delete: if false; // Immutable once issued
+    }
+
+    // 10-Year Sealed Evidence Packages
+    match /evidence_packages/{pkgId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId) && isPrivilegedLegalStaff();
+      allow create: if isActiveENP() && isTenantMember(request.resource.data.tenantId);
+      allow update, delete: if false; // Statutory WORM preservation
+    }
+
+    // Security Incidents & Threat Telemetry
+    match /security_incidents/{incidentId} {
+      allow read: if isSignedIn() && isTenantMember(resource.data.tenantId) && (
+        getUserData().role in ['ADMIN', 'COMPLIANCE_OFFICER']
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // Default deny for all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
