@@ -4,11 +4,11 @@ import path from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/ophireum-expert-assistant/',
+  base: '/Supreme-Court-Logins/',
 
   plugins: [
     react(),
-    tailwindcss()
+    tailwindcss(),
   ],
 
   resolve: {
